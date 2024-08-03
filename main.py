@@ -765,9 +765,9 @@ def analyze(n_clicks, patt_name, guess, A_1):
         condition = np.logical_and(filt_wid == pattern_data['filter_width'][0], sli_dis == pattern_data['slits_dist'][0])
         visib[condition] = vis
         vis_data = pd.DataFrame({
-        'slits_dist': sli_dis,
-        'filter_width': filt_wid,
-        'vis': visib
+            'slits_dist': sli_dis,
+            'filter_width': filt_wid,
+            'vis': visib
         })
         vis_data.to_csv('vis_data.csv')
 
