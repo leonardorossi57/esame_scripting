@@ -256,7 +256,7 @@ def serve_layout():
                     dcc.RangeSlider( 
                         0.01,
                         0.1,
-                        step = 0.01,
+                        step = 0.005,
                         value = [0.01, 0.05],
                         marks = {str(x): str(x) for x in np.arange(0.01, 0.02, 0.1)},
                         id='filter-width'
@@ -283,9 +283,9 @@ def serve_layout():
                         dcc.Markdown(r'Distance between slits range ($\mathrm{mm}$)', mathjax = True)
                     ),
                     dcc.RangeSlider( 
-                        0.5,
+                        0.1,
                         10,
-                        step = 0.1,
+                        step = 0.05,
                         value = [0.5, 10],
                         marks = {str(x): str(x) for x in np.arange(5, 20, 5)},
                         id='slits-dist'
@@ -384,7 +384,7 @@ def serve_layout():
                             html.Br(),
                             dcc.Slider(
                                 0.5, 
-                                1.5,
+                                2.5,
                                 step = 0.01,
                                 value = 1, 
                                 marks = {str(x/10): str(x/10) for x in np.arange(5, 15, 5)},
@@ -399,7 +399,7 @@ def serve_layout():
                             ),
                             html.Br(),
                             dcc.Checklist( # CONSIDER REPLACING WITH RADIO ITEMS
-                                ['Fit guess', 'Extremal points'],
+                                ['Fit guess', 'Extremal points', 'Rought fit', 'Convex hull'],
                                 [],
                                 id = 'pre-options',
                                 inline = True
@@ -437,9 +437,19 @@ def serve_layout():
                 html.Div(children = [
                     html.H3(children = 'ANALYZE ALL PATTERNS'),
                     html.Div([
-                        # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
+                        # This buttons let the user start or stop the analysis 
                         html.Button(id='part-three-button', children='Start analysis'), 
                         html.Button(id='cancel-three', children = 'Cancel'),
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        dcc.RadioItems(
+                        ['Rough fit', 'Convex hull'],
+                        'Convex hull',
+                        id='norm-method',
+                        inline=True
+                    ),
                     ],
                     className = 'start'
                     ),
@@ -450,6 +460,17 @@ def serve_layout():
                     ],
                     className = 'start'
                     ),
+                    html.Label(
+                        # All the patterns generated are stored in a folder. The dropdown menu below shows the content of that folder, 
+                        # letting the user choose a pattern to analyze individually if necessary
+                        dcc.Markdown('> Choose filtering width (click "choose" and then select)')
+                    ),
+                    html.Div([
+                        html.Button(id='choose-filter', children = 'Choose')
+                    ],
+                    className = 'start'
+                    ),
+                    dcc.Dropdown(id = 'select-filter-width'),
                     html.H3(children = 'PLOT VISIBILITY'),
                     html.Div([
                         html.Button(id='plot-all-button', children = 'Plot')
@@ -636,9 +657,9 @@ def generate_fields(set_progress, n_clicks, field_num):
             {'visibility': 'hidden'},
         ),
     ],
-    cancel=[Input('cancel-two', 'n_clicks')],
-    progress=[Output('progress-bar-two', 'value'), Output('progress-bar-two', 'max')],
-    manager=long_callback_manager
+    cancel = [Input('cancel-two', 'n_clicks')],
+    progress = [Output('progress-bar-two', 'value'), Output('progress-bar-two', 'max')],
+    manager = long_callback_manager
 )
 def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, slits_dist_ext):
     if n_clicks is None:
@@ -654,7 +675,7 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
     filter_width_ext = [round(g * 2e5 * np.pi / wavelen, 2) for g in filter_width_ext]
 
     filter_width_step = round(0.01 * 2e5 * np.pi / wavelen, 2)
-    slits_dist_step = 0.5
+    slits_dist_step = 0.1
 
     vect = os.listdir('Speckles')
     
@@ -688,7 +709,7 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
                 'screen': 'x [cm]',
                 'pattern': 'Field intensity'
             }) # Create the figure of the graph
-            pattern_data.to_csv('Patterns/Pattern_{}_{}.csv'.format(n_clicks, counter)) # Store the pattern to csv
+            pattern_data.to_csv('Patterns/Pattern_F={}_D={}.csv'.format(round(filter_width, 2), round(slits_dist, 2))) # Store the pattern to csv
 
             counter += 1
             set_progress((str(counter), str(num))) # Update progress bar
@@ -827,6 +848,7 @@ def pre_process(n_clicks, options, guess, A_1, patt_name):
     ],
     inputs = [
         Input('part-three-button', 'n_clicks'), # The only input is the click of the 'start' button
+        State('norm-method', 'value'),
         # The other parameters are passed as states, so changing them does not trigger the start of the simulation,
         # State('select-pattern', 'value')
     ],
@@ -834,12 +856,12 @@ def pre_process(n_clicks, options, guess, A_1, patt_name):
         (Output('part-three-button', 'disabled'), True, False), # The start button is disabled
         (Output('cancel-three', 'disabled'), False, True), # And it is possible to cancel the operation
         (
-            Output('counter-three', 'style'), # Show or hid the counter (visible when not running, hidden when running)
+            Output('counter-three', 'style'), # Show or hide the counter (visible when not running, hidden when running)
             {'visibility': 'hidden'},
             {'visibility': 'visible'},
         ),
         (
-            Output('progress-bar-three', 'style'), # Show or hid the progress bar (hidden when not running, visible when running)
+            Output('progress-bar-three', 'style'), # Show or hide the progress bar (hidden when not running, visible when running)
             {'visibility': 'visible'},
             {'visibility': 'hidden'},
         ),
@@ -848,7 +870,7 @@ def pre_process(n_clicks, options, guess, A_1, patt_name):
     progress = [Output('progress-bar-three', 'value'), Output('progress-bar-three', 'max')], # Link to progress bar id
     manager = long_callback_manager
 )
-def analyze_all(set_progress, n_clicks):
+def analyze_all(set_progress, n_clicks, method):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
@@ -867,7 +889,7 @@ def analyze_all(set_progress, n_clicks):
     counter = 1
     for i in vect:
         data_temp = pd.read_csv('Patterns/' + i)
-        vis, pha = mod.fast_process(data_temp, slit_width, wavelen, dist_2)
+        vis, pha, _, _, _ = mod.fast_process(data_temp, slit_width, wavelen, dist_2, method)
 
         slits_dist.append(round(data_temp['slits_dist'][0], 2))
         filter_width.append(round(data_temp['filter_width'][0], 2))
@@ -896,19 +918,37 @@ def analyze_all(set_progress, n_clicks):
 
     return ['Analysis number {}'.format(n_clicks + 1)]
 
+
+@callback(
+    # Callback for choosing the filter width to plot
+    Output('select-filter-width', 'options'),
+    Input('choose-filter', 'n_clicks'), # Input the button click, other parameters are states
+)
+def choose_filter(n_clicks):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    corr_data = pd.read_csv('corr_data.csv')
+    filter_width = corr_data['filter_width'].to_numpy()
+    
+    return np.sort(np.array([i for i in set(filter_width)])) # Remove redundancy
+
 @callback(
     # Callback for plotting the correlation functions
     Output('counter-plot-all', 'children'),
     Output('graph-all', 'figure'),
     Input('plot-all-button', 'n_clicks'), # Input the button click, other parameters are states
+    State('select-filter-width', 'value')
 )
-def plot_all(n_clicks):
+def plot_all(n_clicks, selected_fw):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
     corr_data = pd.read_csv('corr_data.csv')
+    corr_data = corr_data[corr_data['filter_width'] == selected_fw]
+
     filter_width = corr_data['filter_width'].to_numpy()
     slits_dist = corr_data['slits_dist'].to_numpy()
+    filter_type = corr_data['filter_type'].to_numpy()
 
     M = np.max(slits_dist)
     m = np.min(slits_dist)
@@ -919,7 +959,7 @@ def plot_all(n_clicks):
     cols = ['x_axis']
 
     for f in set(filter_width):
-        if corr_data['filter_type'][0] == 'Rectangular':
+        if filter_type[0] == 'Rectangular':
             theo.append(np.abs(np.sinc(f * x_axis / (20 * np.pi))))
         else:
             theo.append(np.exp(-2 * (f * x_axis / (20)) ** 2))
@@ -980,15 +1020,44 @@ def plot_cvf(n_clicks):
         cl.append(mod.FWHM(temp_corr, temp_sl) * 10) # Convert to mm
         fw.append((wavelen * 1e-7 * f * 100/ (2 * np.pi))) # Convert to mm
 
+    fw = np.array(fw)
+    cl = np.array(cl)
+
+    ind = np.argsort(fw)
+    fw = fw[ind]
+    cl = cl[ind]
+
+    # Fit con una proporzionalità inversa
+    def fit_invrel(x, y):
+        A = np.sum(1 / x ** 2)
+        B = np.sum(y / x)
+
+        return B / A
+
+    popt = fit_invrel(fw, cl)
+
     df = pd.DataFrame({
         'filter_width': fw,
-        'corr_length': cl 
+        'corr_length': cl,
     })
 
-    fig = px.scatter(df, x = 'corr_length', y = 'filter_width', title = 'Inverse relation between correlation length and filter width', labels = {
+    df2 = pd.DataFrame({
+        'filter_width': fw,
+        'fit': popt / fw
+    })
+
+    fig = px.scatter(df, x = 'filter_width', y = 'corr_length', title = 'Inverse relation between correlation length and filter width', labels = {
         'corr_length': 'Correlation length [mm]',
         'filter_width': 'Filter width [mm]'
     })
+    fig2 = px.line(df2, x = 'filter_width', y = 'fit')
+    fig2.update_traces(line = dict(color = 'rgba(0, 255, 0, 1)'))
+
+    fig.add_traces(
+    list(fig2.select_traces())
+    )
+    
+    df.to_csv('corr_vs_filter.csv')
 
     return ['Plot number {}'.format(n_clicks + 1)], fig
 

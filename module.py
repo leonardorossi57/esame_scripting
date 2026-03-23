@@ -83,15 +83,20 @@ def filter(filter_type, field, filter_width):
 
         filt_field = ifft(ifftshift(transf))
 
+    intensity = np.sum(np.abs(transf).real ** 2) / dim ** 2
+
+    with open('intensities.txt', 'a') as f:
+        f.write(str(filter_width) + ' ' + str(intensity) + '\n')
+
     return filt_field
 
 def create_pattern(field, dist_2, slits_dist, slit_width, screen, wavelen):
     """ This function profiles the filtered speckle field with a double slit and then propagates it on the final screen, creating the interference pattern to analyze
     Arguments:
-        field: filtered speckle field on the plane where lies the doble slit
+        field: filtered speckle field on the plane where lies the double slit
         dist_2: distance from the double slit and the screen on which interference is observed in [cm]
         slits_dist: distance between the two slits in [mm]
-        slit_width: width of either of the two slits in [mm]
+        slit_width: width of each of the two slits in [mm]
         screen: coordinates of the points on the screen in [cm]
         wavelen: wavelength of the light in [nm]
     Returns:
@@ -111,7 +116,7 @@ def create_pattern(field, dist_2, slits_dist, slit_width, screen, wavelen):
     slit_index = index[np.logical_or(slit_1, slit_2)]
 
     for i in slit_index:
-        pattern += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)/wavelen)/np.sqrt(1 + (screen[i] - screen) ** 2 / dist_2 ** 2)
+        pattern += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2) / wavelen) / np.sqrt(1 + (screen[i] - screen) ** 2 / dist_2 ** 2)
 
     # Return the interference pattern and the profile.
     return np.abs(pattern).real ** 2
@@ -148,12 +153,13 @@ def calc_extremal(vect, x_axis, tolerance):
             
     return vect_max, vect_min
 
+
 def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
     """
     Calculate the upper and lower profile of a given interference pattern, use it to normalize the pattern itself, calculate the pattern visibility
     Arguments:
         pattern_data: pandas dataframe containing the interference pattern and the screen coordinates in [cm]
-        slit_width: width of either of the two slits which produce the interference in [mm]
+        slit_width: width of each of the two slits which produce the interference in [mm]
         wavelen: wavelength of the light in [nm]
         dist_2: distance from the double slit to the screen in [cm]
         guess: first guess for the visibility fit parameter
@@ -171,10 +177,11 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
         avg_intensity = float(f.read())
 
     def fit_up(vect, A, B, vis): # Function for fitting the upper profile
-        return avg_intensity * 2 * A * (1 + vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+        return (200 / 30) ** 2 * avg_intensity * 2 * A * (1 + vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * slit_width ** 2
     
     def fit_down(vect, A, B, vis): # Function for fitting the lower profile
-        return avg_intensity * 2 * A * (1 - vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+        return (200 / 30) ** 2 * avg_intensity * 2 * A * (1 - vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * slit_width ** 2
+    
 
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
@@ -285,8 +292,9 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1):
             with open('numbers.txt', 'r') as f:
                 avg_intensity = float(f.read())
             
-            prof_up = avg_intensity * 2 * A_1 * (1 + guess) * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
-            prof_down = avg_intensity * 2 * A_1 * (1 - guess) * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+            # Hard-coding!!!!
+            prof_up = (200 / 30) ** 2 * avg_intensity * 2 * A_1 * (1 + guess) * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * slit_width ** 2 #* (filter_width * dx) / (np.pi * 2)
+            prof_down = (200 / 30) ** 2 * avg_intensity * 2 * A_1 * (1 - guess) * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * slit_width ** 2 #* (filter_width * dx) / (np.pi * 2)
 
             guess_data = pd.DataFrame({
                 'screen': screen,
@@ -298,9 +306,20 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1):
             # fig3 = px.line(guess_data, x = 'screen', y = 'prof_up')
             fig_data += fig3.data
 
+        else: # Do the fast processing in order to be able to see the result
+            pass
+            _, _, screen_cut, patt_cut, norm = fast_process(pattern_data, slit_width, wavelen, dist_2, i)
+            fast_data = pd.DataFrame({
+                'screen': screen_cut,
+                'pattern': patt_cut,
+                'profile': norm
+            })
+            fig4 = px.line(fast_data.melt(id_vars = 'screen', value_vars = ['pattern', 'profile']), x = 'screen', y = 'value', line_group = 'variable', color = 'variable')
+            fig_data += fig4.data
+
     return fig_data, fig_layout
 
-def fast_process(pattern_data, slit_width, wavelen, dist_2):
+def fast_process(pattern_data, slit_width, wavelen, dist_2, method):
     """ Calculate the visibility of a pattern automatically, more roughly, without using the fit
     Arguments: 
         pattern_data: pandas dataframe containing the interference pattern and the screen coordinates in [cm]
@@ -319,10 +338,10 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
         avg_intensity = float(f.read())
 
     def fit_up(vect, A, B, vis): # Function for fitting the upper profile
-        return avg_intensity * 2 * A * (1 + vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+        return (200 / 30) ** 2 * avg_intensity * 2 * A * (1 + vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * slit_width ** 2
     
     def fit_down(vect, A, B, vis): # Function for fitting the lower profile
-        return avg_intensity * 2 * A * (1 - vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+        return (200 / 30) ** 2 * avg_intensity * 2 * A * (1 - vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * slit_width ** 2
 
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
@@ -333,27 +352,45 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
 
-    dx = screen[1] - screen[0]
-
     pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
     screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
 
-    patt_max, patt_min = calc_extremal(pattern, screen, tolerance)
+    dx = screen[1] - screen[0]
 
-    def func_1(xx):
-        aa, bb, v = xx[0], xx[1], xx[2]
-        return np.mean((fit_up(screen[patt_max], aa, bb, v) - pattern[patt_max]) ** 2) + np.mean((fit_down(screen[patt_min], aa, bb, v) - pattern[patt_min]) ** 2)
-    
-    res = minimize(func_1, x0 = [1, 1, 0.5])
-    popt = res.x
+    if method == 'Rough fit':
 
-    # popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = (guess, A_1))
-    # popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = (guess, A_2))
+        ## First method: fit
 
-    # patt_up = fit_up(screen, *popt)
-    # patt_down = fit_down(screen, *popt)
+        patt_max, patt_min = calc_extremal(pattern, screen, tolerance)
 
-    norm = fit_up(screen_cut, *popt)
+        def func_1(xx):
+            aa, bb, v = xx[0], xx[1], xx[2]
+            return np.mean((fit_up(screen[patt_max], aa, bb, v) - pattern[patt_max]) ** 2) + np.mean((fit_down(screen[patt_min], aa, bb, v) - pattern[patt_min]) ** 2)
+        
+        res = minimize(func_1, x0 = [1, 1, 0.5])
+        popt = res.x
+
+        # popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = (guess, A_1))
+        # popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = (guess, A_2))
+
+        # patt_up = fit_up(screen, *popt)
+        # patt_down = fit_down(screen, *popt)
+
+        norm = fit_up(screen_cut, *popt)
+
+    elif method == 'Convex hull':
+        ## Second method: calculate the modulation as the concave hull of the data
+        index = np.arange(len(pattern_cut))
+        norm = np.zeros_like(pattern_cut)
+        i = 0
+        while i < len(pattern) - 1:
+            temp1 = pattern_cut[index > i]
+            temp2 = screen_cut[index > i]
+            temp3 = index[index > i]
+            coeff = (temp1 - pattern_cut[i]) / (temp2 - screen_cut[i])
+            j = temp3[coeff == np.max(coeff)][0]
+            norm[i:j + 1] = pattern_cut[i] + np.max(coeff) * (screen_cut[i:j + 1] - screen_cut[i])
+            i = j
 
     patt_norm = pattern_cut/norm # Normalized pattern
 
@@ -365,7 +402,9 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     pha = 0 # Phase of the correlation function
     center = round(len(screen_cut) / 2) # Center of the screen
 
-    if patt_norm[center] > patt_norm[center + round(wavelen * dist_2 / (slits_dist * dx))]: # In this case the center is a maximum
+    if center + round(wavelen * dist_2 / (slits_dist * dx)) >= len(patt_norm):
+        pha = 1
+    elif patt_norm[center] > patt_norm[center + round(wavelen * dist_2 / (slits_dist * dx))]: # In this case the center is a maximum
         pha = 1
     else:
         pha = -1
@@ -375,7 +414,7 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
     # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
     
-    return round(vis, 3), pha
+    return round(vis, 3), pha, screen_cut, pattern_cut, norm
 
 def FWHM(vect, x_axis):
     """ Calculate the FWHM of a peaked function
@@ -385,7 +424,7 @@ def FWHM(vect, x_axis):
     Returns:
         FWHM: width of the function peak calculated as the full width at half maximum
     """
-    FW = x_axis[vect >= 0.5]
+    FW = x_axis[vect >= 0.4]
     if FW.size:
         FWHM = FW[-1] - FW[0]
     else:
