@@ -1,0 +1,14 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Set-up}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Simulation}{4}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Review of the physics}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Speckle fields}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Measuring the field correlation function}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Finite slit width effects}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Computing the field correlation function}{7}{subsection.2.4}%
+\contentsline {section}{\numberline {3}Results from the simulation}{8}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Generation of the speckle fields}{8}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Interference patterns}{8}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Data analysis}{9}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Visibility curve and phase}{11}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Relation between $\Delta l$ and $\Delta k$}{11}{subsection.3.5}%

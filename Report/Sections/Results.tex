@@ -8,19 +8,34 @@ the patterns and the calculation of the correlation function.
 
 % Maybe add some figures here, illustrating the GUI? Or keep that for the notebook?
 
-% \subsection{Generation of the speckle fields} keep this for the notebook?
+\subsection{Generation of the speckle fields} 
+The interface allows to choose the desired size of the statistical sample as in figure \ref{specpar}.
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width = \textwidth]{Img/speckle_param.png}
+    \caption{Choice of parameters for step 1}
+    \label{specpar}
+\end{figure}
 
 \subsection{Interference patterns}
 
+The interface allows to choose the range of the slit separation and of the filtering width as in 
+figure \ref{patpar}.
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width = \textwidth]{Img/pattern_param.png}
+    \caption{Typical interference pattern}
+    \label{patpar}
+\end{figure}
 The interference patterns produced look like figure \ref{patt}. In the figure, the modulating function of eqn. \eqref{theopatt} is also shown. Since this 
 function is calculated neglecting the effects of partial coherence over each individual slit, the actual pattern has a lower intensity. \\
 
 There are three main effects which in principle have to be taken into account, as can be seen in the figure: 
 the modulation of the cosine (due to the finite width of the slits), the loss of visibility (due to the partial coherence between the field amplitudes at the two slits) 
-and, as noted above, 
-an overall reduction of the intensity if compared with coherent light, as well as a slight widening of the modulating 
-function (due to the partial coherence over the two individual slits). This last two features are accounted 
-for by inserting two phenomenological parameters in the fit: a horizontal and a vertical dilaton constant.
+and some other effect - which could be numerical or due to partial coherence across a single slit - causing a slight and inconsistent modification of the amplitude and the 
+width of the pattern; this last effects are unaccounted for in the model, and are described by two additional parameters in the fit: a horizontal and a vertical dilaton 
+constant.
+
 \begin{figure}[!ht]
     \centering
     \includegraphics[width = .8\textwidth]{Img/output.png}
@@ -30,18 +45,31 @@ for by inserting two phenomenological parameters in the fit: a horizontal and a 
 
 \subsection{Data analysis}
 
-The interface for data analysis allows to automatically compute the visibility of each interference pattern (previously generated and stored as csv files) as 
-a function of either the width of the spectral density after the spatial filtering, or the separation between the slits. In the latter case, the resulting 
-function is exactly the absolute value of the normalized field correlation function, as per eqn. \eqref{vis_formula}: this allows to calculate the correlation 
-length $\Delta l$ as the FWHM (or another width measure) of the correlation function. The dependence on the spectral density width $\Delta k$ allows then to 
-verify the inverse proportionality between $\Delta l$ and $\Delta k$. \\
+The interface allows to visualize the interference patterns one by one, and to choose the method of analysis (mainly, how to calculate the modulation in order to remove it) as in 
+figure \ref{data_int}.
 
-The automatic analysis of all the interference patterns is carried out by fitting the upper and lower profile of the interference pattern (the local maxima of the pattern belong to the upper profile and the local minima belong 
-to the lower pattern) with the modulating function of eqn. \eqref{theopatt}. In order to adjust for the effect of partial coherence over a single slit, two additional 
-parameters are added to the fit, as mentioned above: a horizontal and a vertical dilaton constant. Normalizing the pattern by the profilation thus calculated, 
-a nearly (co)sinusoidal pattern results (like in figure \ref{data_an}); the visibility can then be calculated using eqn. \eqref{vis_formula}. 
-It is also possible to consider an individual pattern at a time: in this case, the interface allows to choose the initial parameters fot the fit. 
-This is shown in figure \ref{data_an}.
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width = 0.49\textwidth]{Img/data_int_1.png}
+    \includegraphics[width = 0.49\textwidth]{Img/data_int_2.png}
+    \caption{Data analysis interface}
+    \label{data_int}
+\end{figure}
+
+The interface for data analysis allows to automatically compute the visibility of each interference pattern (previously generated and stored as csv files) as 
+a function of both the width of the spectral density after the spatial filtering and the separation between the slits. For each fixed value of the filter width $\Delta k$, 
+the resulting function is the absolute value of the normalized field correlation function, as per eqn. \eqref{vis_formula}: this allows to calculate the 
+correlation length $\Delta l$ as the FWHM of the correlation function. The measured correlation function can be visualized for any value of the 
+filter width as in fig. \ref{data_int}. It's then possible to plot the inverse relation between $\Delta l$ and $\Delta k$. \\
+
+It's possible to choose two different metehods to estimate the modulation: either fit the upper profile with the modulating function in \eqref{theopatt} to the local maxima, 
+or calculate numerically the convex hull of the local maxima. If a greater control over the analysis of a single pattern is necessary, the interface allows also to 
+choose manually the starting parameters fo the fit of the modulation: in this case, the modulation is computed by jointly minimizing the $\chi^2$ for both the upper and the 
+lower profile (respectively, to the local maxima and to the local minima of the pattern). \\
+
+Normalizing the pattern by the modulation thus calculated, a nearly (co)sinusoidal pattern results (like in figure \ref{data_an}); the visibility can then be calculated 
+using eqn. \eqref{vis_formula}. It is also possible to consider an individual pattern at a time: in this case, the interface allows to choose the initial parameters of 
+the fit. This is all shown in figure \ref{data_an}.
 
 \begin{figure}[!ht]
     \centering
@@ -85,7 +113,7 @@ $-1$, depending on whether the center of the pattern is a maximum or a minimum (
 \subsection{Relation between \texorpdfstring{$\Delta l$}{dl} and \texorpdfstring{$\Delta k$}{dk}}
 
 To each value of the width $\Delta k$ of the filtering slit there corresponds a different width $\Delta l$  of the filtered speckle field's correlation function. 
-These two quantities are inversely proportional, and this can be directly verified from the simulation. This is just a well-known consequence of the fourier transform 
+These two quantities are inversely proportional, and this can be directly verified from the simulation. This is just a well-known consequence of the Fourier transform 
 relation between the spectral density and the correlation function (the Wiener-Kintchine theorem).
 
 \begin{figure}[!ht]
