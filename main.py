@@ -3,10 +3,11 @@
 import numpy as np
 import pandas as pd
 from dash import Dash, html, dcc, callback, Output, Input, State, exceptions
-import module as mod # The plan is to put here the functions which do most of the work
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+import json
+import module as mod # The plan is to put here the functions which do most of the work
 
 # The following imports are necessary for long callbacks
 from dash.long_callback import DiskcacheLongCallbackManager
@@ -383,8 +384,8 @@ def serve_layout():
                             ),
                             html.Br(),
                             dcc.Slider(
-                                0.5, 
-                                2.5,
+                                0.1, 
+                                1.5,
                                 step = 0.01,
                                 value = 1, 
                                 marks = {str(x/10): str(x/10) for x in np.arange(5, 15, 5)},
@@ -395,11 +396,27 @@ def serve_layout():
                         ),
                         html.Div([
                             html.Label(
+                                dcc.Markdown('(Horizontal dilation)')
+                            ),
+                            html.Br(),
+                            dcc.Slider(
+                                0.5, 
+                                1.5,
+                                step = 0.01,
+                                value = 1, 
+                                marks = {str(x/10): str(x/10) for x in np.arange(5, 15, 5)},
+                                id = 'fit-guess-3'
+                            )
+                        ],
+                        className = 'smol_l_pink'
+                        ),
+                        html.Div([
+                            html.Label(
                                 dcc.Markdown('Options for preliminary analysis')
                             ),
                             html.Br(),
                             dcc.Checklist( # CONSIDER REPLACING WITH RADIO ITEMS
-                                ['Fit guess', 'Extremal points', 'Rought fit', 'Convex hull'],
+                                ['Fit guess', 'Extremal points', 'Rough fit', 'Convex hull'],
                                 [],
                                 id = 'pre-options',
                                 inline = True
@@ -609,11 +626,16 @@ def generate_fields(set_progress, n_clicks, field_num):
     if n_clicks is None:
         raise exceptions.PreventUpdate() # This is necessary in order for the simulation not to start automatically upon launching the app
     
+    ### Choose fixed parameters here because I want to include the average intensity, which is computed here, so I do it all at once
     source_size = 0.5
-    dist = 15
-    scatt_num = 1000
-    wavelen = 500
+    dist = 15 # [cm]
+    scatt_num = 1000 
+    wavelen = 500 # [nm]
     avg_intensity = 0
+    screen_size = 30 # [cm]
+    slit_width = 0.2 # [mm]
+    dist_2 = 1e4 # [cm]
+    dx = 0.005 # [cm]
 
     for i in range(field_num):
         field, screen = mod.generate_speckle_field(source_size, dist, scatt_num, wavelen) # Generate a field
@@ -626,8 +648,16 @@ def generate_fields(set_progress, n_clicks, field_num):
         field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i)) # Store in csv
         set_progress((str(i + 1), str(field_num))) # Update progress bar
 
-    with open('numbers.txt', 'w') as f:
-        f.write(str(avg_intensity))
+    numbers = {'avg_intensity': avg_intensity, 
+               'field_num': field_num, 
+               'wavelen_nm': wavelen, 
+               'screen_size_cm': screen_size, 
+               'slit_width_mm': slit_width, 
+               'dx_cm': dx, 
+               'dist2_cm': dist_2}
+    
+    with open('numbers.json', 'w') as f:
+        json.dump(numbers, f)
 
     return ['Simulation number {}'.format(n_clicks + 1)] # Return counter
 
@@ -664,37 +694,50 @@ def generate_fields(set_progress, n_clicks, field_num):
 def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, slits_dist_ext):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
+    
+    with open('numbers.json', 'r') as f:
+        numbers = json.load(f)
 
-    slit_width = 0.2
-    dist_2 = 1e4
-    wavelen = 500
-    screen_size = 30 # [cm] 
-    dx = 0.005 # [cm] (resolution)
+    slit_width = numbers['slit_width_mm']
+    dist_2 = numbers['dist2_cm']
+    wavelen = numbers['wavelen_nm']
+    screen_size = numbers['screen_size_cm'] # [cm] 
+    dx = numbers['dx_cm'] # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
 
-    filter_width_ext = [round(g * 2e5 * np.pi / wavelen, 2) for g in filter_width_ext]
+    filter_width_ext = [round(g * 2e5 * np.pi / wavelen, 2) for g in filter_width_ext] # convert in k units
 
     filter_width_step = round(0.01 * 2e5 * np.pi / wavelen, 2)
     slits_dist_step = 0.1
-
     vect = os.listdir('Speckles')
     
     num = (filter_width_ext[1] + filter_width_step - filter_width_ext[0]) * (slits_dist_ext[1] + slits_dist_step - slits_dist_ext[0]) / (filter_width_step * slits_dist_step)
+    slits_dist_ext = [l/10 for l in slits_dist_ext]
+    
+    # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7
+    slits_dist_step = slits_dist_step / 10
     counter = 1
+
+    totem = []
 
     for filter_width in np.arange(filter_width_ext[0], filter_width_ext[1] + filter_width_step, filter_width_step):
         for slits_dist in np.arange(slits_dist_ext[0], slits_dist_ext[1] + slits_dist_step, slits_dist_step):
 
             pattern = np.zeros(dim) # Array containing the interference pattern
 
+            
+            avg_intensity_fi = 0 # intensity of the filtered field
             for i in vect:
                 field_data = pd.read_csv('Speckles/' + i) # Read the csv with the speckle field 
                 field = field_data['spec_re'].to_numpy() + field_data['spec_im'].to_numpy() * 1j # Convert to ndarray
                 screen = field_data['screen'].to_numpy() 
-                filt_field = mod.filter(filter_type, field, filter_width) # Spatially filter the field
+                filt_field = mod.filter(filter_type, field, filter_width, screen_size, dx) # Spatially filter the field
+                avg_intensity_fi += np.mean(np.abs(filt_field).real ** 2)
 
                 # Add the pattern generated by the speckle field to the average
-                pattern += mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, wavelen) 
+                pattern += mod.create_pattern(filt_field, slits_dist, screen, dist_2, wavelen, slit_width)
 
             pattern_data = pd.DataFrame({
                 'screen': screen,
@@ -713,6 +756,11 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
 
             counter += 1
             set_progress((str(counter), str(num))) # Update progress bar
+
+        totem.append([round(filter_width, 2), avg_intensity_fi / len(vect)])
+
+    with open('intensity.json', 'w') as f:
+        json.dump(totem, f)
 
     return ['Simulation number {}'.format(n_clicks + 1)], fig # Return the number of clicks and the last pattern computed
 
@@ -766,19 +814,37 @@ def plot_field(n_clicks, field_name):
     Input('process-button', 'n_clicks'), # Input the button click, other parameters are states
     State('select-pattern', 'value'),
     State('fit-guess', 'value'),
-    State('fit-guess-2', 'value')
+    State('fit-guess-2', 'value'),
+    State('fit-guess-3', 'value')
 )
-def analyze(n_clicks, patt_name, guess, A_1):
+def analyze(n_clicks, patt_name, guess, A_1, B_1):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
-    
-    slit_width = 0.2 # [mm]
-    wavelen = 500 # [nm]
-    dist_2 = 1e4 # [cm]
 
     pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
 
-    patt_data_proc, patt_data_norm, vis = mod.process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1)
+    with open('numbers.json', 'r') as f:
+        numbers = json.load(f)
+
+    with open('intensity.json', 'r') as f:
+        totem = json.load(f)
+
+    # get the correct intensity, corresponding to the given filter width
+    fw = pattern_data['filter_width'][0]
+    for t in totem:
+        if t[0] == fw:
+            avg_intensity_f = t[1]
+
+    avg_intensity = numbers['avg_intensity']
+    slit_width = numbers['slit_width_mm']
+    dist_2 = numbers['dist2_cm']
+    wavelen = numbers['wavelen_nm']
+
+    # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7 
+
+    patt_data_proc, patt_data_norm, vis = mod.process_pattern(pattern_data, guess, A_1, B_1, dist_2, wavelen, slit_width, avg_intensity_f)
     
     # fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
     fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable', labels = {
@@ -821,19 +887,37 @@ def analyze(n_clicks, patt_name, guess, A_1):
     State('pre-options', 'value'),
     State('fit-guess', 'value'),
     State('fit-guess-2', 'value'),
+    State('fit-guess-3', 'value'),
     State('select-pattern', 'value')
 )
-def pre_process(n_clicks, options, guess, A_1, patt_name):
+def pre_process(n_clicks, options, guess, A_1, B_1, patt_name):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
 
-    slit_width = 0.2 # [mm]
-    wavelen = 500 # [nm]
-    dist_2 = 1e4 # [cm]
+    with open('numbers.json', 'r') as f:
+        numbers = json.load(f)
+
+    with open('intensity.json', 'r') as f:
+        totem = json.load(f)
+
+    avg_intensity = numbers['avg_intensity']
+    slit_width = numbers['slit_width_mm']
+    dist_2 = numbers['dist2_cm']
+    wavelen = numbers['wavelen_nm']
+
+    # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7 
 
     pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
 
-    fig_data, fig_layout = mod.pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1)
+    # get the correct intensity, corresponding to the given filter width
+    fw = pattern_data['filter_width'][0]
+    for t in totem:
+        if t[0] == fw:
+            avg_intensity_f = t[1]
+
+    fig_data, fig_layout = mod.pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, B_1, avg_intensity_f)
 
     fig = go.Figure(data = fig_data, layout = fig_layout)
 
@@ -877,9 +961,20 @@ def analyze_all(set_progress, n_clicks, method):
     vect = os.listdir('Patterns')
     num = len(vect)
 
-    slit_width = 0.2 # [mm]
-    wavelen = 500 # [nm]
-    dist_2 = 1e4 # [cm]
+    with open('numbers.json', 'r') as f:
+        numbers = json.load(f)
+
+    with open('intensity.json', 'r') as f:
+        totem = json.load(f)
+
+    avg_intensity = numbers['avg_intensity']
+    slit_width = numbers['slit_width_mm']
+    dist_2 = numbers['dist2_cm']
+    wavelen = numbers['wavelen_nm']
+
+    # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7 
 
     visib = []
     filter_width = []
@@ -889,7 +984,13 @@ def analyze_all(set_progress, n_clicks, method):
     counter = 1
     for i in vect:
         data_temp = pd.read_csv('Patterns/' + i)
-        vis, pha, _, _, _ = mod.fast_process(data_temp, slit_width, wavelen, dist_2, method)
+
+        # get the correct intensity, corresponding to the given filter width
+        fw = data_temp['filter_width'][0]
+        for t in totem:
+            if t[0] == fw:
+                avg_intensity_f = t[1]
+        vis, pha, _, _, _ = mod.fast_process(data_temp, slit_width, wavelen, dist_2, method, avg_intensity_f)
 
         slits_dist.append(round(data_temp['slits_dist'][0], 2))
         filter_width.append(round(data_temp['filter_width'][0], 2))
@@ -943,6 +1044,11 @@ def plot_all(n_clicks, selected_fw):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
+    with open('numbers.json', 'r') as f:
+        numbers = json.load(f)
+
+    wavelen = numbers['wavelen_nm']
+
     corr_data = pd.read_csv('corr_data.csv')
     corr_data = corr_data[corr_data['filter_width'] == selected_fw]
 
@@ -958,9 +1064,11 @@ def plot_all(n_clicks, selected_fw):
     theo = [x_axis]
     cols = ['x_axis']
 
+    fw = filter_width * wavelen / (2e5 * np.pi) 
+
     for f in set(filter_width):
         if filter_type[0] == 'Rectangular':
-            theo.append(np.abs(np.sinc(f * x_axis / (20 * np.pi))))
+            theo.append(np.abs(np.sinc(f * x_axis / (2 * np.pi))))
         else:
             theo.append(np.exp(-2 * (f * x_axis / (20)) ** 2))
         cols.append(str(f))
@@ -997,8 +1105,11 @@ def plot_cvf(n_clicks):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
-    wavelen = 500 # [nm]
-    dist_2 = 1e4 # [cm]
+    with open('numbers.json', 'r') as f:
+        numbers = json.load(f)
+
+    wavelen = numbers['wavelen_nm']
+    wavelen = wavelen / 1e7 # Convert to cm
     
     corr_data = pd.read_csv('corr_data.csv')
     filter_width = corr_data['filter_width'].to_numpy()
@@ -1018,7 +1129,8 @@ def plot_cvf(n_clicks):
         temp_corr = temp_corr[ind]
 
         cl.append(mod.FWHM(temp_corr, temp_sl) * 10) # Convert to mm
-        fw.append((wavelen * 1e-7 * f * 100/ (2 * np.pi))) # Convert to mm
+        # fw.append((wavelen * 1e-7 * f * 100/ (2 * np.pi))) # Convert to mm
+        fw.append(f)
 
     fw = np.array(fw)
     cl = np.array(cl)
