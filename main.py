@@ -19,10 +19,10 @@ long_callback_manager = DiskcacheLongCallbackManager(cache)
 # Create necessary folders
 
 if not os.path.exists('Speckles'):
-        os.mkdir('Speckles')
+    os.mkdir('Speckles')
 
 if not os.path.exists('Patterns'):
-        os.mkdir('Patterns')
+    os.mkdir('Patterns')
 
 # Create the app
 app = Dash(__name__)
@@ -839,10 +839,18 @@ def analyze(n_clicks, patt_name, guess, A_1, B_1):
     slit_width = numbers['slit_width_mm']
     dist_2 = numbers['dist2_cm']
     wavelen = numbers['wavelen_nm']
+    screen_size = numbers['screen_size_cm']
+    dx = numbers['dx_cm']
+    sample_size = numbers['field_num']
+
+    avg_intensity_f = avg_intensity_f * sample_size / dx ** 2
+    # nedded since 1) the averaged pattern is calculated by summing (instead of averaging) over the ensemble, and 2) avg_intensity is supposed to be an integral, not a sum.
 
     # Convert lengths to cm
     slit_width = slit_width / 10
     wavelen = wavelen / 1e7 
+
+    
 
     patt_data_proc, patt_data_norm, vis = mod.process_pattern(pattern_data, guess, A_1, B_1, dist_2, wavelen, slit_width, avg_intensity_f)
     
@@ -904,6 +912,9 @@ def pre_process(n_clicks, options, guess, A_1, B_1, patt_name):
     slit_width = numbers['slit_width_mm']
     dist_2 = numbers['dist2_cm']
     wavelen = numbers['wavelen_nm']
+    screen_size = numbers['screen_size_cm']
+    dx = numbers['dx_cm']
+    sample_size = numbers['field_num']
 
     # Convert lengths to cm
     slit_width = slit_width / 10
@@ -916,6 +927,8 @@ def pre_process(n_clicks, options, guess, A_1, B_1, patt_name):
     for t in totem:
         if t[0] == fw:
             avg_intensity_f = t[1]
+
+    avg_intensity_f = avg_intensity_f * sample_size / dx ** 2
 
     fig_data, fig_layout = mod.pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, B_1, avg_intensity_f)
 
@@ -971,6 +984,9 @@ def analyze_all(set_progress, n_clicks, method):
     slit_width = numbers['slit_width_mm']
     dist_2 = numbers['dist2_cm']
     wavelen = numbers['wavelen_nm']
+    screen_size = numbers['screen_size_cm']
+    dx = numbers['dx_cm']
+    sample_size = numbers['field_num']
 
     # Convert lengths to cm
     slit_width = slit_width / 10
@@ -990,6 +1006,9 @@ def analyze_all(set_progress, n_clicks, method):
         for t in totem:
             if t[0] == fw:
                 avg_intensity_f = t[1]
+
+        avg_intensity_f = avg_intensity_f * sample_size / dx ** 2
+
         vis, pha, _, _, _ = mod.fast_process(data_temp, slit_width, wavelen, dist_2, method, avg_intensity_f)
 
         slits_dist.append(round(data_temp['slits_dist'][0], 2))
@@ -1070,7 +1089,7 @@ def plot_all(n_clicks, selected_fw):
         if filter_type[0] == 'Rectangular':
             theo.append(np.abs(np.sinc(f * x_axis / (2 * np.pi))))
         else:
-            theo.append(np.exp(-2 * (f * x_axis / (20)) ** 2))
+            theo.append(np.exp(-2 * (f * x_axis / 2) ** 2))
         cols.append(str(f))
 
     corr_theo = pd.DataFrame(columns = cols, data = np.transpose(np.array(theo)))
@@ -1158,16 +1177,20 @@ def plot_cvf(n_clicks):
         'fit': popt / fw
     })
 
-    fig = px.scatter(df, x = 'filter_width', y = 'corr_length', title = 'Inverse relation between correlation length and filter width', labels = {
-        'corr_length': 'Correlation length [mm]',
-        'filter_width': 'Filter width [mm]'
-    })
-    fig2 = px.line(df2, x = 'filter_width', y = 'fit')
-    fig2.update_traces(line = dict(color = 'rgba(0, 255, 0, 1)'))
+    fig = go.Figure(layout = go.Layout(title = 'Inverse relation between correlation length and filter width'))
+    fig.update_xaxes(title_text='Correlation length [mm]')
+    fig.update_yaxes(title_text='Filter width [mm]')
 
-    fig.add_traces(
-    list(fig2.select_traces())
-    )
+    fig.add_trace(go.Scatter(x = df['filter_width'], y = df['corr_length'], name = 'Data'))
+    fig.add_trace(go.Scatter(x = df2['filter_width'], y = df2['fit'], name = 'Fit', mode = 'lines'))
+    
+    # fig.add_trace(px.line(df2, x = 'filter_width', y = 'fit'))
+
+    #fig = px.scatter(df, x = 'filter_width', y = 'corr_length', title = 'Inverse relation between correlation length and filter width', labels = {
+    #    'corr_length': 'Correlation length [mm]',
+    #   'filter_width': 'Filter width [mm]'
+    # })
+    
     
     df.to_csv('corr_vs_filter.csv')
 

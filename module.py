@@ -11,9 +11,9 @@ def Ipl(y, B, sw, sd, wl, d):
 def Imi(y, B, sw, sd, wl, d):
     return sw * np.sinc(B * sw * (y - sd / 2) / (wl * d))
 
-def fit_up(y, vis, A, B, sw, sd, wl, d, ai): # Hard coding !!!
+def fit_up(y, vis, A, B, sw, sd, wl, d, ai): 
     return A * ai * ((Ipl(y, B, sw, sd, wl, d) ** 2 + Imi(y, B, sw, sd, wl, d) ** 2) + 2 * vis * Ipl(y, B, sw, sd, wl, d) * Imi(y, B, sw, sd, wl, d))
-def fit_down(y, vis, A, B, sw, sd, wl, d, ai): # Hard coding !!!
+def fit_down(y, vis, A, B, sw, sd, wl, d, ai): 
     return A * ai * ((Ipl(y, B, sw, sd, wl, d) ** 2 + Imi(y, B, sw, sd, wl, d) ** 2) - 2 * vis * Ipl(y, B, sw, sd, wl, d) * Imi(y, B, sw, sd, wl, d))
 
 def generate_speckle_field(source_size, dist, scatt_num, wavelen): # Use, for the first field, a "monte carlo" method
@@ -157,6 +157,14 @@ def calc_extremal(vect, x_axis, tolerance):
         else:
             i += 1
 
+    if vect_max[0] == 0: # If an extremal point is found at the edges of the vector, it's considered spurious.
+        vect_max = vect_max[1:]
+    if vect_max[-1] == len(vect) - 1:
+        vect_max = vect_max[:-1]
+    if vect_min[0] == 0:
+        vect_min = vect_min[1:]
+    if vect_min[-1] == len(vect) - 1:
+        vect_min = vect_min[:-1]
             
     return vect_max, vect_min
 
@@ -172,8 +180,6 @@ def process_pattern(pattern_data, guess, A_1, B_1, dist_2, wavelen, slit_width, 
         (patt_data_proc, patt_data_norm, vis): tuple containing: a pandas dataframe with the pattern, the screen and the two profiles; a pandas dataframe with 
         the normalized pattern and the screen; the numerical value of the visibility.
     """
-
-    avg_intensity = avg_intensity * 300 * 30 / 0.005
 
     cut = 15 # [cm]
     slits_dist = pattern_data['slits_dist'][0]
@@ -244,8 +250,6 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, 
     Returns:
         (fig_data, fig_layout): tuple with the data and layout objects of the graph
     """
-
-    avg_intensity = avg_intensity * 300 / 0.005 ** 2
 
     slits_dist = pattern_data['slits_dist'][0]
     filter_width = pattern_data['filter_width'].to_numpy()[0]
@@ -318,7 +322,6 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2, method, avg_intensit
     Returns:
         vis: the numerical value of the visibility
     """
-    avg_intensity = avg_intensity * 300 ** 2 * 30 
     
     cut = 15 # [cm]
     slits_dist = pattern_data['slits_dist'][0]
