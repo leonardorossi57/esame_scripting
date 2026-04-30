@@ -24,7 +24,7 @@ figure \ref{patpar}.
 \begin{figure}[!ht]
     \centering
     \includegraphics[width = \textwidth]{Img/pattern_param.png}
-    \caption{Typical interference pattern}
+    \caption{Choice of parameters for step 2}
     \label{patpar}
 \end{figure}
 The interference patterns produced look like figure \ref{patt}. In the figure, the modulating function of eqn. \eqref{theopatt} is also shown. Since this 
@@ -63,32 +63,42 @@ correlation length $\Delta l$ as the FWHM of the correlation function. The measu
 filter width as in fig. \ref{data_int}. It's then possible to plot the inverse relation between $\Delta l$ and $\Delta k$. \\
 
 It's possible to choose two different metehods to estimate the modulation: either fit the upper profile with the modulating function in \eqref{theopatt} to the local maxima, 
-or calculate numerically the convex hull of the local maxima. If a greater control over the analysis of a single pattern is necessary, the interface allows also to 
-choose manually the starting parameters fo the fit of the modulation: in this case, the modulation is computed by jointly minimizing the $\chi^2$ for both the upper and the 
-lower profile (respectively, to the local maxima and to the local minima of the pattern). \\
+or calculate numerically the convex hull of the local maxima (fig. \ref{an2} shows the convex hull). If a greater control over the analysis of a single pattern is necessary, 
+the interface allows also to choose manually the starting parameters fo the fit of the modulation: in this case, the modulation is computed by jointly minimizing the 
+$\chi^2$ for both the upper and the lower profile (respectively, to the local maxima and to the local minima of the pattern; fig. \ref{an1} shows the maxima and minima as 
+computed by the script, fig. \ref{an3} shows the fit). \\
 
-Normalizing the pattern by the modulation thus calculated, a nearly (co)sinusoidal pattern results (like in figure \ref{data_an}); the visibility can then be calculated 
-using eqn. \eqref{vis_formula}. It is also possible to consider an individual pattern at a time: in this case, the interface allows to choose the initial parameters of 
-the fit. This is all shown in figure \ref{data_an}.
+Normalizing the pattern by the modulation thus calculated, a nearly (co)sinusoidal pattern results (like in figure \ref{an4}); the visibility can then be calculated 
+using eqn. \eqref{vis_formula}.
 
 \begin{figure}[!ht]
-    \centering
-    \includegraphics[width = \textwidth]{Img/an_11.png}
-    \includegraphics[width = \textwidth]{Img/an_22.png}
-    \caption{Data analysis interface}
-    \label{data_an}
+    \begin{subfigure}[]{0.49\textwidth}
+        \includegraphics[width = \textwidth]{Img/extrema.png}
+        \caption{Computed maxima and minima}
+        \label{an1}
+    \end{subfigure}
+    \begin{subfigure}[]{0.49\textwidth}
+        \includegraphics[width = \textwidth]{Img/convexhull.png}
+        \caption{Convex hull}
+        \label{an2}
+    \end{subfigure}      
+    \begin{subfigure}[]{0.49\textwidth}
+        \includegraphics[width = \textwidth]{Img/processed.png}
+        \caption{Fitting of upper and lower profile}
+        \label{an3}
+    \end{subfigure}
+    \begin{subfigure}[]{0.49\textwidth}
+        \includegraphics[width = \textwidth]{Img/normalized.png}
+        \caption{Normalized pattern}
+        \label{an4}
+    \end{subfigure}          
+    \caption{Data analysis}
 \end{figure}
+
 \subsection{Visibility curve and phase}
 
 The visibility curve (i.e. the absolute value of the field correlation function) for a sample rectangular spatial filtering is 
 shown in figure \ref{vis_f}, alongside the theoretical correlation function \eqref{rect-corr}.
-
-\begin{figure}[!ht]
-    \centering
-    \includegraphics[width = \textwidth]{Img/vis.png}
-    \caption{Visibility curve for rectangular filtering}
-    \label{vis_f}
-\end{figure}
 
 In order to determine the correlation function, it is necessary to know the absolute value (the visibility) as well as the phase. The latter is either $+1$ or 
 $-1$, depending on whether the center of the pattern is a maximum or a minimum (these two possibilities are shown in figure \ref{swap}). 
@@ -114,11 +124,21 @@ $-1$, depending on whether the center of the pattern is a maximum or a minimum (
 
 To each value of the width $\Delta k$ of the filtering slit there corresponds a different width $\Delta l$  of the filtered speckle field's correlation function. 
 These two quantities are inversely proportional, and this can be directly verified from the simulation. This is just a well-known consequence of the Fourier transform 
-relation between the spectral density and the correlation function (the Wiener-Kintchine theorem).
+relation between the spectral density and the correlation function (the Wiener-Khintchine theorem).
 
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width = \textwidth]{Img/inv.png}
-    \caption{Inverse proportionality between $\Delta l$ and $\Delta k$}
-    \label{inv}
+    \begin{subfigure}[]{0.45\textwidth}
+        \includegraphics[width = \textwidth]{Img/vis.png}
+        \caption{Visibility curve}
+        \label{vis_f}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[]{0.53\textwidth}
+        \includegraphics[width = \textwidth]{Img/inv.png}
+        \caption{Inverse proportionality between $\Delta l$ and $\Delta k$}
+        \label{inv}
+    \end{subfigure}
+    \caption{Results of data analysis}
+    \label{last}
 \end{figure}

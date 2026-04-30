@@ -30,7 +30,13 @@ which is
     \gamma(s) = \mathrm{sinc}\,\left( \frac{\pi bs}{\lambda f} \right)
 \end{equation}
 
-for a rectangular filtering slit of width $b$ (here $f$ is the focal length of the lenses used for the filter). \\
+for a rectangular filtering slit of width $b$ (here $f$ is the focal length of the lenses used for the filter), or 
+
+\begin{equation} \label{gauss-corr}
+    \gamma(s) = \exp\left[-2\left(\frac{\pi bs}{\lambda f}\right)^2\right].
+\end{equation}
+
+for a gaussian filtering. \\
 
 This correlation function can be measured by Young interferometry: if the filtered field is probed by a double slit with separation $s$, one has the relation 
 
@@ -51,7 +57,7 @@ For simplicity, the simulation is done with $1$D instead of $2$D fields. The sim
 a rectangular shape but e.g. with a gaussian shape, and it therefore showcases directly the Fourier transform relation given by the Wiener-Khintchine theorem. \\
 
 Otherwise, the simulation closely follows the outline traced above: in the first part, a certain number ($\approx 200$) of $1$D speckle fields is generated 
-and stored as csv files; in a second part, the  files are read and each one is fast-Fourier transformed, filtered, transformed back and used to generate an 
-interference pattern. The patterns are then averaged over the ensemble, and the resulting averaged pattern is again stored as a csv. Finally, the patterns can 
+and stored as \texttt{.csv} files; in a second part, the  files are read and each one is fast-Fourier transformed, filtered, transformed back and used to generate an 
+interference pattern. The patterns are then averaged over the ensemble, and the resulting averaged pattern is again stored as a \texttt{.csv}. Finally, the patterns can 
 be read and analyzed. \\
 

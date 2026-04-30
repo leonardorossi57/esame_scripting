@@ -72,23 +72,28 @@ coherent light the profile is more complicated. The equation \eqref{int_field} b
 where $r(x) = \sqrt{z^2 + (y - x)^2}$. Without going over the whole calculation, the resulting pattern is, modulo a $z^2$ factor, and 
 neglecting the partial coherence of the field over a single slit,
 
-\begin{equation} \label{theopatt}
-    \langle |E_{\text{screen}}(y)|^2 \rangle = 2a^2 \Gamma(0) \, \mathrm{sinc}  \left( \frac{\pi a y}{\lambda z} \right)^2 \left[ 1 + |\gamma(s)| \cos\left( \frac{2\pi}{\lambda z}sy +\phi(s) \right) \right]
+\begin{equation}\label{theopatt}
+    \langle |E_{\text{screen}}(y)|^2 \rangle =  a^2\Gamma(0) \left[ \left( I_+(y)^2 + I_-(y)^2 \right) + 2\gamma(s)I_+(y)I_-(y)\cos\left( \frac{2\pi sy}{\lambda z} \right)\right],
 \end{equation}
 
-Actually, there are also the effects due to the partial coherence of the field over the span of a single slit; in the code, I accounted for those effects by 
-inserting a corrective multiplicative constant in the amplitude (this correction is only empirically justified).
+where the functions $I_{\pm}$ can be well approximated by
+
+\begin{equation}
+    I_\pm(y) = \mathrm{sinc}\left[ \frac{\pi a}{\lambda z} \left( y \mp \frac s2 \right)\right]
+\end{equation}
+
+if $a^2/\lambda z \ll 1$. The explicit expressions for the upper and lower modulation are obtained by setting the cosine to $\pm 1$; actually, there are also effects due to the partial coherence of the field over the span of a single slit; in the code, I accounted for those effects by 
+inserting a corrective multiplicative constant in the amplitude (this correction is only empirically justified). In the end, the expressions used to fit the upper and 
+lower profile (respectively, to the local maxima and minima of the simulated pattern, see below) are 
+\begin{equation}
+    I_{\substack{\text{upper} \\ \text{lower}}} = A a^2 I_0 \left[ \left( I_+(By)^2 + I_-(By)^2 \right) \pm 2 \mathcal V I_+(By)I_-(By)\right];
+\end{equation}
+
+here $I_0$ is the average intensity of the field incident on the slits (i.e. $\Gamma(0)$), while the fitted parameters are $A, \, B$ and $\mathcal V$.
 
 \subsection{Computing the field correlation function} \label{comp_corr}
 
 The spatial filtering of the speckle field determines its second order statistics by the Wiener-Khintchine theorem, which states that the two-point correlation 
 function is the fourier transform of the spectral density (which is proportional to the field in the focal plane of the spatial filter). Therefore, if $b$ denotes 
 the width of the filtering slit, and assuming an initially $\delta$-correlated field (so that its spectral density is a constant), it is easy to obtain eqn. 
-\eqref{rect-corr}. \\
-
-The software will also allow the option of a gaussian filtering. In that case, the field correlation function in the double slit plane would be 
-
-\begin{equation}
-    \gamma(s) = \exp\left[-2\left(\frac{\pi bs}{\lambda f}\right)^2\right].
-\end{equation}
-
+\eqref{rect-corr}. The software will also allow the option of a gaussian filtering. In that case, the field correlation function in the double slit plane would be \eqref{gauss-corr}.
