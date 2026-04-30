@@ -1099,7 +1099,6 @@ def plot_all(n_clicks, selected_fw):
         'corr': 'Correlation',
         'filter_width': 'Filter width'
     }) 
-    # FIND A WAY TO CHANGE THE COLOR
 
     fig_2 = px.line(corr_theo.melt(id_vars = 'x_axis', value_vars = cols[1:]), x = 'x_axis', y = 'value', line_group = 'variable', color = 'variable')
     fig_2.update_traces(line = dict(color = 'rgba(50,50,50,0.2)'))
