@@ -1,4 +1,4 @@
-\section{Results from the simulation}
+\section{Simulation}
 
 % \subsection{Overview of the interface}
 
@@ -17,6 +17,23 @@ The interface allows to choose the desired size of the statistical sample as in 
     \label{specpar}
 \end{figure}
 
+The fields $E_{\text{spec}}$ are created at distance $z$ from the source, summing spherical waves
+
+\begin{equation}
+  E(y) = \frac{e^{ikr(x) + \phi(x)}}{r(x)},  \qquad r(x) = \sqrt{(x - y)^2 + z^2},
+\end{equation}
+
+centered on points $x$ extracted rendomly in the source region, with random phases $\phi(x)$. 
+
+\subsection{Spatial filtering}
+The spatial filtering is done by computing a DFT of $E_{\text{spec}}$, multiplying by the pupil function of the filter (which in the experimental reality would be a 
+rectangle function, though the options of the simulation also allow a gaussian) and then performing the inverse DFT obtaining $E_{\text{filt}}$. The DFT is supposed to represent a physical spatial 
+filter built with two lenses and a slit in their focal plane: therefore the physical meaning of the spatial frequency $\tilde k$ (the independent variable of the DFT) is 
+$\tilde k = k y / f$, where $k = 2\pi/\lambda$ is the wavenumber, $y$ the coordinate on the focal plane and $f$ the focal length of the lenses. The filtering width 
+in frequency units is therefore $\tilde b = k b /f$. From \eqref{rect-corr} and \eqref{gauss-corr}, we see that the theoretical correlation function depends on the 
+combination $\pi b s / \lambda f = k b s / 2 f = \tilde bs / 2$ (as expected, since implementation of the filtering procedure doesn't require a definition of $f$ nor of the 
+physical dimension of the slit, the theoretical correlation function can be computed just from the filtering width in frequency units $\tilde b$). 
+
 \subsection{Interference patterns}
 
 The interface allows to choose the range of the slit separation and of the filtering width as in 
@@ -27,6 +44,12 @@ figure \ref{patpar}.
     \caption{Choice of parameters for step 2}
     \label{patpar}
 \end{figure}
+The pattern is computed summing spherical waves weighted by the field $E_{\text{filt}}(x)$, i.e. contributes of the form
+\begin{equation}
+    E_{\text{filt}}(x) \, \frac{e^{ikr(x)}}{r(x)}, \quad r(x) = \sqrt{(x - y)^2 + z^2}
+\end{equation}
+for $x$ inside the interference slits. \\ 
+
 The interference patterns produced look like figure \ref{patt}. In the figure, the modulating function of eqn. \eqref{theopatt} is also shown. Since this 
 function is calculated neglecting the effects of partial coherence over each individual slit, the actual pattern has a lower intensity. \\
 
@@ -98,7 +121,7 @@ using eqn. \eqref{vis_formula}.
 \subsection{Visibility curve and phase}
 
 The visibility curve (i.e. the absolute value of the field correlation function) for a sample rectangular spatial filtering is 
-shown in figure \ref{vis_f}, alongside the theoretical correlation function \eqref{rect-corr}.
+shown in figure \ref{vis_f}, alongside the theoretical correlation function \eqref{rect-corr}. \\
 
 In order to determine the correlation function, it is necessary to know the absolute value (the visibility) as well as the phase. The latter is either $+1$ or 
 $-1$, depending on whether the center of the pattern is a maximum or a minimum (these two possibilities are shown in figure \ref{swap}). 
